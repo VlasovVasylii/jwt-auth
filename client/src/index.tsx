@@ -1,8 +1,7 @@
 import React, {createContext} from 'react';
 import ReactDOM from 'react-dom/client';
-import Router from './router';
+import App from "./App";
 import Store from "./store/store";
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 interface State {
     store: Store;
@@ -25,6 +24,6 @@ root.render(
     <Context.Provider value={{
         store
     }}>
-        <Router />
+        <App />
     </Context.Provider>
 );

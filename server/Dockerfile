@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm install
+RUN npm install && npm install -g nodemon
 
 # Копируем остальной код
 COPY . .
@@ -16,5 +16,5 @@ COPY . .
 # Открываем порт (по умолчанию 5000)
 EXPOSE 5000
 
-# Запуск сервера
-CMD ["npm", "run", "dev"] 
+# Запуск сервера через nodemon для hot-reload
+CMD ["npx", "nodemon", "index.js"] 
