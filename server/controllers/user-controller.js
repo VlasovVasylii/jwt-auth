@@ -152,6 +152,66 @@ class UserController {
             next(e);
         }
     }
+
+    /**
+     * Инициировать смену пароля для авторизованного пользователя (отправить письмо со ссылкой)
+     * @param req {Request}
+     * @param res {Response}
+     * @param next {Function}
+     */
+    async changePassword(req, res, next) {
+        try {
+            const userId = req.user.id;
+            await UserService.initiateChangePassword(userId);
+            return res.json({ message: 'Письмо для смены пароля отправлено на вашу почту.' });
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    /**
+     * Включить двухфакторную аутентификацию
+     */
+    async enable2FA(req, res, next) {
+        try {
+            const userId = req.user.id;
+            await UserService.set2FA(userId, true);
+            return res.json({ message: 'Двухфакторная аутентификация включена' });
+        } catch (e) {
+            next(e);
+        }
+    }
+    /**
+     * Отключить двухфакторную аутентификацию
+     */
+    async disable2FA(req, res, next) {
+        try {
+            const userId = req.user.id;
+            await UserService.set2FA(userId, false);
+            return res.json({ message: 'Двухфакторная аутентификация отключена' });
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    /**
+     * Подтверждение входа по ссылке (2FA)
+     */
+    async confirmLogin(req, res, next) {
+        try {
+            const { token } = req.params;
+            const result = await UserService.confirmLogin(token);
+            if (result && result.tokens) {
+                // Выдаём токены как при обычном логине
+                res.cookie('refreshToken', result.tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true});
+                return res.json(result);
+            } else {
+                return res.status(400).json({ message: result.message || 'Ошибка подтверждения входа' });
+            }
+        } catch (e) {
+            next(e);
+        }
+    }
 }
 
 // Функция проверки сложности пароля

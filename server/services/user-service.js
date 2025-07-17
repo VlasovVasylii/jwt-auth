@@ -12,8 +12,8 @@ const ApiError = require('../exceptions/api-error');
 class UserService {
     /**
      * Регистрация пользователя
-     * @param email {string}
-     * @param password {string}
+     * @param {string} email
+     * @param {string} password
      * @returns {Promise<any>}
      */
     async registration(email, password) {
@@ -35,7 +35,7 @@ class UserService {
 
     /**
      * Активация пользователя
-     * @param activationLink {string}
+     * @param {string} activationLink
      * @returns {Promise<void>}
      */
     async activate(activationLink) {
@@ -49,8 +49,8 @@ class UserService {
 
     /**
      * Логин пользователя
-     * @param email {string}
-     * @param password {string}
+     * @param {string} email
+     * @param {string} password
      * @returns {Promise<any>}
      */
     async login(email, password) {
@@ -64,6 +64,18 @@ class UserService {
         if (!isPassEquals) {
             throw ApiError.BadRequest(`Неверный пароль`);
         }
+        // 2FA: если включена, отправляем письмо и не выдаём токены
+        if (user.twoFactorEnabled) {
+            const { v4 } = require('uuid');
+            const token = v4();
+            const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
+            user.login2FAToken = token;
+            user.login2FAExpires = expires;
+            await user.save();
+            const confirmLink = `${process.env.CLIENT_URL}/confirm-login/${token}`;
+            await mailService.send2FALoginMail(user.email, confirmLink);
+            return { twoFactorRequired: true, message: 'На вашу почту отправлено письмо для подтверждения входа.' };
+        }
         const userDto = new UserDto(user);
         const tokens = tokenService.generateTokens({...userDto})
         await tokenService.saveToken(userDto.id, tokens.refreshToken);
@@ -72,7 +84,7 @@ class UserService {
 
     /**
      * Выход пользователя
-     * @param refreshToken {string}
+     * @param {string} refreshToken
      * @returns {Promise<any>}
      */
     async logout(refreshToken) {
@@ -81,7 +93,7 @@ class UserService {
 
     /**
      * Обновление токена
-     * @param refreshToken {string}
+     * @param {string} refreshToken
      * @returns {Promise<any>}
      */
     async refresh(refreshToken) {
@@ -113,7 +125,7 @@ class UserService {
 
     /**
      * Запрос на сброс пароля
-     * @param email {string}
+     * @param {string} email
      * @returns {Promise<void>}
      */
     async forgotPassword(email) {
@@ -133,8 +145,8 @@ class UserService {
 
     /**
      * Сброс пароля по токену
-     * @param token {string}
-     * @param newPassword {string}
+     * @param {string} token
+     * @param {string} newPassword
      * @returns {Promise<void>}
      */
     async resetPassword(token, newPassword) {
@@ -149,6 +161,77 @@ class UserService {
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         await user.save();
+    }
+
+    /**
+     * Смена пароля авторизованным пользователем
+     * @param {string} userId
+     * @param {string} oldPassword
+     * @param {string} newPassword
+     * @returns {Promise<void>}
+     */
+    async changePassword(userId, oldPassword, newPassword) {
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            throw ApiError.BadRequest('Пользователь не найден');
+        }
+        const isPassEquals = await bcrypt.compare(oldPassword, user.password);
+        if (!isPassEquals) {
+            throw ApiError.BadRequest('Старый пароль неверен');
+        }
+        user.password = await bcrypt.hash(newPassword, 3);
+        await user.save();
+    }
+
+    /**
+     * Инициировать смену пароля для авторизованного пользователя (отправить письмо со ссылкой)
+     * @param {string} userId
+     * @returns {Promise<void>}
+     */
+    async initiateChangePassword(userId) {
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            throw ApiError.BadRequest('Пользователь не найден');
+        }
+        const resetToken = v4();
+        const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 час
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = expires;
+        await user.save();
+        const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+        await mailService.sendResetPasswordMail(user.email, resetLink);
+    }
+
+    /**
+     * Включить/выключить двухфакторную аутентификацию
+     * @param {string} userId
+     * @param {boolean} enabled
+     * @returns {Promise<void>}
+     */
+    async set2FA(userId, enabled) {
+        const user = await UserModel.findById(userId);
+        if (!user) throw ApiError.BadRequest('Пользователь не найден');
+        user.twoFactorEnabled = enabled;
+        await user.save();
+    }
+
+    /**
+     * Подтверждение входа по токену (2FA)
+     * @param {string} token
+     * @returns {Promise<{tokens?: any, user?: any, message?: string}>}
+     */
+    async confirmLogin(token) {
+        const user = await UserModel.findOne({ login2FAToken: token, login2FAExpires: { $gt: new Date() } });
+        if (!user) {
+            return { message: 'Ссылка для подтверждения входа недействительна или устарела' };
+        }
+        user.login2FAToken = undefined;
+        user.login2FAExpires = undefined;
+        await user.save();
+        const userDto = new UserDto(user);
+        const tokens = tokenService.generateTokens({ ...userDto });
+        await tokenService.saveToken(userDto.id, tokens.refreshToken);
+        return { tokens, user: userDto };
     }
 }
 
