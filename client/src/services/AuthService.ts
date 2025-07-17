@@ -3,7 +3,8 @@ import { AuthResponse } from "../models/response/AuthResponse";
 
 export default class AuthService {
     static async login(email: string, password: string) {
-        return $api.post<AuthResponse>("/login", { email, password });
+        const response = await $api.post("/login", { email, password });
+        return response.data;
     }
 
     static async registration(email: string, password: string) {

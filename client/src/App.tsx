@@ -1,8 +1,7 @@
-import React, {FC, useContext, useEffect} from 'react';
+import React, {FC, useContext, useEffect, useState} from 'react';
 import {Context} from "./index";
 import {observer} from 'mobx-react-lite';
 import {Routes, Route, Navigate, useLocation} from 'react-router-dom';
-import { useState } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { publicRoutes, privateRoutes, commonRoutes } from './router';
@@ -16,8 +15,16 @@ const App: FC = () => {
     useEffect(() => {
         // Проверка токена из query (Google OAuth)
         const params = new URLSearchParams(location.search);
-        const accessToken = params.get('accessToken');
-        const error = params.get('error');
+        let accessToken = params.get('accessToken');
+        let error = params.get('error');
+
+        // Обработка токена из hash (/#accessToken=...)
+        if (!accessToken && window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.slice(1));
+            accessToken = hashParams.get('accessToken');
+            error = hashParams.get('error');
+        }
+
         if (accessToken) {
             localStorage.setItem('token', accessToken);
             store.setAuth(true);
@@ -39,10 +46,17 @@ const App: FC = () => {
         }
     }, [oauthError]);
 
+    useEffect(() => {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+            document.body.className = 'bg-dark text-light';
+        } else {
+            document.body.className = '';
+        }
+    }, []);
+
     if (redirect) {
-        const to = redirect;
-        setRedirect(null);
-        return <Navigate to={to} replace />;
+        return <Navigate to={redirect} replace />;
     }
 
     if (store.isLoading) {

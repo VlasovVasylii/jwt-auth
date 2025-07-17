@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../http';
 
@@ -10,6 +10,7 @@ const ResetPasswordPage: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,6 +24,9 @@ const ResetPasswordPage: React.FC = () => {
         try {
             await axios.post(`${API_URL}/reset-password`, { token, password });
             setSuccess('Пароль успешно изменён! Теперь вы можете войти.');
+            setTimeout(() => {
+                navigate('/login', { state: { info: 'Пароль успешно изменён, войдите заново.' } });
+            }, 2000);
         } catch (e: any) {
             setError(e?.response?.data?.message || 'Ошибка при смене пароля');
         } finally {

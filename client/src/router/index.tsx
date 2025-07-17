@@ -5,17 +5,19 @@ import UsersPage from '../pages/UsersPage';
 import SettingsPage from '../pages/SettingsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import ConfirmLoginPage from '../pages/ConfirmLoginPage';
+import ConfirmLoginWaitPage from '../pages/ConfirmLoginWaitPage';
 
 export const publicRoutes = [
     { path: '/login', element: <AuthPage /> },
     { path: '/forgot-password', element: <ForgotPasswordPage /> },
     { path: '/reset-password/:token', element: <ResetPasswordPage /> },
     { path: '/confirm-login/:token', element: <ConfirmLoginPage /> },
+    { path: '/settings', element: <SettingsPage /> },
+    { path: '/confirm-login-wait', element: <ConfirmLoginWaitPage /> },
 ];
 
 export const privateRoutes = [
     { path: '/users', element: <UsersPage /> },
-    { path: '/settings', element: <SettingsPage /> },
 ];
 
 export const commonRoutes = [

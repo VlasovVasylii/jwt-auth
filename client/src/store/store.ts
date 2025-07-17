@@ -67,21 +67,23 @@ export default class Store {
     async login(email: string, password: string) {
         try {
             const response = await AuthService.login(email, password);
-            if (response.data.twoFactorRequired) {
-                this.setInfo(response.data.message || "Требуется подтверждение входа. Проверьте почту.");
+            if (response.twoFactorRequired) {
+                this.setInfo(response.message || "Требуется подтверждение входа. Проверьте почту.");
                 this.setError("");
-                return;
+                return response;
             }
-            localStorage.setItem("token", response.data.accessToken);
+            localStorage.setItem("token", response.accessToken);
             this.setAuth(true);
-            this.setUser(response.data.user);
+            this.setUser(response.user);
             this.setError("");
             this.setInfo("");
+            return response;
         } catch (e: any) {
             const message = e?.response?.data?.message || "Ошибка при входе";
             this.setError(message);
             this.setInfo("");
             console.log(message);
+            throw e;
         }
     }
 
@@ -110,13 +112,16 @@ export default class Store {
      */
     async logout() {
         try {
-            const response = await AuthService.logout();
-            console.log(response);
+            await AuthService.logout();
+        } catch (e: any) {
+            // Если 401 — всё равно сбрасываем состояние
+            if (e?.response?.status !== 401) {
+                console.log(e?.response?.data?.message);
+            }
+        } finally {
             localStorage.removeItem("token");
             this.setAuth(false);
             this.setUser({} as IUser);
-        } catch (e: any) {
-            console.log(e?.response?.data?.message);
         }
     }
 

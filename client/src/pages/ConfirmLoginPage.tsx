@@ -18,6 +18,7 @@ const ConfirmLoginPage: React.FC = () => {
                     localStorage.setItem('token', response.data.tokens.accessToken);
                     store.setAuth(true);
                     store.setUser(response.data.user);
+                    await store.checkAuth(); // Гарантируем актуальность twoFactorEnabled
                     setStatus('success');
                     setMessage('Вход подтверждён! Теперь вы можете перейти к пользователям.');
                 } else {

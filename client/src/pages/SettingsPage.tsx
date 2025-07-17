@@ -9,7 +9,6 @@ const SettingsPage: React.FC = () => {
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [twoFAloading, setTwoFAloading] = useState(false);
-    const [twoFA, setTwoFA] = useState(store.user?.twoFactorEnabled ?? false);
 
     const handleThemeChange = (t: 'light' | 'dark') => {
         setTheme(t);
@@ -36,27 +35,26 @@ const SettingsPage: React.FC = () => {
         setTwoFAloading(true);
         setMessage('');
         try {
-            if (!twoFA) {
+            if (!store.user?.twoFactorEnabled) {
                 await axios.post(`${API_URL}/2fa/enable`, {}, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
-                setTwoFA(true);
                 setMessage('Двухфакторная аутентификация включена.');
-                store.setUser({ ...store.user, twoFactorEnabled: true });
             } else {
                 await axios.post(`${API_URL}/2fa/disable`, {}, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
-                setTwoFA(false);
                 setMessage('Двухфакторная аутентификация отключена.');
-                store.setUser({ ...store.user, twoFactorEnabled: false });
             }
+            await store.checkAuth(); // Синхронизируем пользователя
         } catch (e: any) {
             setMessage(e?.response?.data?.message || 'Ошибка при изменении 2FA');
         } finally {
             setTwoFAloading(false);
         }
     };
+
+    const twoFA = store.user?.twoFactorEnabled ?? false;
 
     return (
         <div className="container mt-5" style={{ maxWidth: 500 }}>
@@ -68,23 +66,27 @@ const SettingsPage: React.FC = () => {
                     <button className={`btn btn-${theme === 'dark' ? 'primary' : 'outline-primary'}`} onClick={() => handleThemeChange('dark')}>Тёмная</button>
                 </div>
             </div>
-            <div className="mb-4">
-                <label className="form-label">Смена пароля:</label>
-                <button className="btn btn-warning ms-3" onClick={handleChangePassword} disabled={loading}>
-                    Отправить письмо для смены пароля
-                </button>
-            </div>
-            <div className="mb-4">
-                <label className="form-label">Двухфакторная аутентификация (2FA):</label>
-                <span className={`badge ms-2 ${twoFA ? 'bg-success' : 'bg-secondary'}`}>{twoFA ? 'Включена' : 'Отключена'}</span>
-                <button
-                    className={`btn ms-3 ${twoFA ? 'btn-outline-danger' : 'btn-outline-success'}`}
-                    onClick={handle2FAToggle}
-                    disabled={twoFAloading}
-                >
-                    {twoFA ? 'Отключить' : 'Включить'}
-                </button>
-            </div>
+            {store.isAuth && (
+                <>
+                    <div className="mb-4">
+                        <label className="form-label">Смена пароля:</label>
+                        <button className="btn btn-warning ms-3" onClick={handleChangePassword} disabled={loading}>
+                            Отправить письмо для смены пароля
+                        </button>
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Двухфакторная аутентификация (2FA):</label>
+                        <span className={`badge ms-2 ${twoFA ? 'bg-success' : 'bg-secondary'}`}>{twoFA ? 'Включена' : 'Отключена'}</span>
+                        <button
+                            className={`btn ms-3 ${twoFA ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                            onClick={handle2FAToggle}
+                            disabled={twoFAloading}
+                        >
+                            {twoFA ? 'Отключить' : 'Включить'}
+                        </button>
+                    </div>
+                </>
+            )}
             {message && <div className="alert alert-info">{message}</div>}
         </div>
     );

@@ -1,12 +1,17 @@
 import React, { useContext } from 'react';
 import { Context } from '../index';
 import { observer } from 'mobx-react-lite';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar: React.FC = () => {
     const { store } = useContext(Context);
+    const navigate = useNavigate();
 
-    // handleLogout теперь только store.logout(), переход через Link
+    const handleLogout = async () => {
+        await store.logout();
+        navigate('/login');
+    };
+
     return (
         <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
             <div className="container-fluid">
@@ -22,11 +27,14 @@ const Navbar: React.FC = () => {
                                     <Link className="nav-link" to="/settings">Настройки</Link>
                                 </li>
                                 <li className="nav-item">
-                                    <Link to="/login" className="btn btn-outline-light ms-2" onClick={store.logout}>Выйти</Link>
+                                    <button className="btn btn-outline-light ms-2" onClick={handleLogout}>Выйти</button>
                                 </li>
                             </>
                         ) : (
                             <>
+                                <li className="nav-item">
+                                    <Link className="nav-link" to="/settings">Настройки</Link>
+                                </li>
                                 <li className="nav-item">
                                     <Link className="nav-link" to="/login">Вход</Link>
                                 </li>

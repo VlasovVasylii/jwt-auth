@@ -1,7 +1,7 @@
 import React, {FC, useContext, useState, useEffect} from 'react';
 import {Context} from "../index";
 import {observer} from "mobx-react-lite";
-import {Navigate} from 'react-router-dom';
+import {Navigate, useLocation, useNavigate} from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const LoginForm: FC = () => {
@@ -11,28 +11,60 @@ const LoginForm: FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [redirect, setRedirect] = useState(false);
     const {store} = useContext(Context);
+    const location = useLocation();
+    const [infoMsg, setInfoMsg] = useState<string | null>(null);
+    const navigate = useNavigate();
+    const [pending2FA, setPending2FA] = useState(false);
+    const [pending2FAMsg, setPending2FAMsg] = useState<string | null>(null);
+
+    // Получаем тему из localStorage
+    const [theme, setTheme] = useState(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+    useEffect(() => {
+        const handler = () => setTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+        window.addEventListener('storage', handler);
+        return () => window.removeEventListener('storage', handler);
+    }, []);
 
     useEffect(() => {
         if (store.isAuth) {
-            setRedirect(true);
+            navigate('/users', { replace: true });
         }
-    }, [store.isAuth]);
+    }, [store.isAuth, navigate]);
 
-    const handleLogin = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (location.state && location.state.info) {
+            setInfoMsg(location.state.info);
+            window.history.replaceState({}, document.title); // сбросить state после показа
+        }
+    }, [location.state]);
+
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        store.login(email, password);
+        try {
+            const res = await store.login(email, password);
+            if (res && res.twoFactorRequired) {
+                setPending2FA(true);
+                setPending2FAMsg(res.message || 'Подтвердите вход по ссылке из письма.');
+                navigate('/confirm-login-wait', { state: { message: res.message } });
+                return;
+            }
+            // если обычный вход
+            navigate('/users', { replace: true });
+        } catch (err) {
+            // ошибки уже обрабатываются в store.error
+        }
     };
     const handleRegistration = (e: React.FormEvent) => {
         e.preventDefault();
         store.registration(email, password);
     };
     // Google login теперь через <a href=...>
-    const googleUrl = `${process.env.REACT_APP_API_URL?.replace('/api','') || ''}/api/auth/google`;
-
-    if (redirect) return <Navigate to="/users" replace />;
+    const googleUrl = "http://localhost:5000/api/auth/google";
 
     return (
-        <form className="p-4 border rounded shadow-sm bg-white" style={{maxWidth: 400, margin: '40px auto'}} onSubmit={handleLogin}>
+        <form
+            className={`p-4 border rounded shadow-sm bg-${theme === 'dark' ? 'dark' : 'white'} text-${theme === 'dark' ? 'light' : 'dark'}`}
+            style={{maxWidth: 400, margin: '40px auto'}} onSubmit={handleLogin}>
             <h2 className="mb-4 text-center">Вход или регистрация</h2>
             <div className="mb-3">
                 <input
@@ -72,9 +104,14 @@ const LoginForm: FC = () => {
                     {store.error}
                 </div>
             )}
-            {store.info && (
-                <div className="alert alert-info text-center" role="alert">
-                    {store.info}
+            {infoMsg && (
+                <div className="alert alert-success text-center" role="alert">
+                    {infoMsg}
+                </div>
+            )}
+            {pending2FA && (
+                <div className="alert alert-warning text-center" role="alert">
+                    {pending2FAMsg || 'Ожидание подтверждения входа...'}
                 </div>
             )}
             <div className="mt-3">
