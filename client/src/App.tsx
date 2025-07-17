@@ -38,6 +38,29 @@ const App: FC = () => {
         }
     }, [location.search]);
 
+    // --- ДОБАВЛЕНО: обработка accessToken при первом монтировании ---
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        let accessToken = params.get('accessToken');
+        let error = params.get('error');
+        if (!accessToken && window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.slice(1));
+            accessToken = hashParams.get('accessToken');
+            error = hashParams.get('error');
+        }
+        if (accessToken) {
+            localStorage.setItem('token', accessToken);
+            store.setAuth(true);
+            store.checkAuth();
+            setRedirect('/users');
+        } else if (error === 'google') {
+            setOauthError('Ошибка входа через Google. Попробуйте ещё раз или используйте другой способ.');
+            setRedirect(window.location.pathname);
+        } else if (localStorage['token']) {
+            store.checkAuth();
+        }
+    }, []);
+
     // Автоматически скрывать алерт через 5 секунд
     useEffect(() => {
         if (oauthError) {
