@@ -19,7 +19,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Helmet — безопасные заголовки (XSS, clickjacking и др.)
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https://jwt.io", "https://developers.google.com"],
+            connectSrc: ["'self'", "http://localhost:5000", "https://localhost:5000", "ws://localhost:5000"],
+            fontSrc: ["'self'", "data:"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"]
+        }
+    }
+}));
 
 // Rate limiting — ограничение числа запросов (например, 100 в 15 минут с одного IP)
 app.use(rateLimit({
@@ -100,8 +113,9 @@ app.use(errorMiddleware);
 const start = async () => {
     try {
         await mongoose.connect(process.env.DB_URL)
-        if (process.env.NODE_ENV === 'production') {
-            // HTTPS only in production
+        // Временно всегда запускать HTTPS для локальной разработки
+        if (true) { // if (process.env.NODE_ENV === 'production') {
+            // HTTPS only in production (или всегда для теста)
             const key = fs.readFileSync('./certs/server.key');
             const cert = fs.readFileSync('./certs/server.cert');
             https.createServer({ key, cert }, app).listen(PORT, () =>

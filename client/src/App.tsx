@@ -29,7 +29,7 @@ const App: FC = () => {
             localStorage.setItem('token', accessToken);
             store.setAuth(true);
             store.checkAuth();
-            setRedirect('/users');
+            setRedirect('/');
         } else if (error === 'google') {
             setOauthError('Ошибка входа через Google. Попробуйте ещё раз или используйте другой способ.');
             setRedirect(location.pathname);
@@ -52,7 +52,7 @@ const App: FC = () => {
             localStorage.setItem('token', accessToken);
             store.setAuth(true);
             store.checkAuth();
-            setRedirect('/users');
+            setRedirect('/');
         } else if (error === 'google') {
             setOauthError('Ошибка входа через Google. Попробуйте ещё раз или используйте другой способ.');
             setRedirect(window.location.pathname);
@@ -105,7 +105,7 @@ const App: FC = () => {
                         <Route key={route.path} path={route.path} element={route.element} />
                     ))}
                     {/* Редирект с корня */}
-                    <Route path="/" element={<Navigate to={store.isAuth ? "/users" : "/login"} replace />} />
+                    <Route path="/" element={<Navigate to={store.isAuth ? "/" : "/login"} replace />} />
                     {commonRoutes.map(route => (
                         <Route key={route.path} path={route.path} element={route.element} />
                     ))}

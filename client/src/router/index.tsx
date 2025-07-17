@@ -6,8 +6,10 @@ import SettingsPage from '../pages/SettingsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import ConfirmLoginPage from '../pages/ConfirmLoginPage';
 import ConfirmLoginWaitPage from '../pages/ConfirmLoginWaitPage';
+import HomePage from '../pages/HomePage';
 
 export const publicRoutes = [
+    { path: '/', element: <HomePage /> },
     { path: '/login', element: <AuthPage /> },
     { path: '/forgot-password', element: <ForgotPasswordPage /> },
     { path: '/reset-password/:token', element: <ResetPasswordPage /> },
