@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Context } from '../index';
 import axios from 'axios';
 import { API_URL } from '../http';
+import { observer } from 'mobx-react-lite';
 
 const SettingsPage: React.FC = () => {
     const { store } = useContext(Context);
@@ -92,4 +93,4 @@ const SettingsPage: React.FC = () => {
     );
 };
 
-export default SettingsPage; 
+export default observer(SettingsPage); 
